@@ -8,6 +8,7 @@ const program = require('commander');
 const ncp = require('ncp').ncp;
 const { prompt } = require('inquirer');
 const replace = require('replace-in-file');
+const fs = require('fs');
 
 clear();
 console.log(
@@ -45,7 +46,7 @@ const addPackage = answers => {
     if (err) {
       return console.error(err);
     }
-    const changes = replace.sync({
+    const changesSnakeCase = replace.sync({
       files: [
         `zcui-wc-${answers.packagename}/build.js`,
         `zcui-wc-${answers.packagename}/index.html`,
@@ -53,10 +54,33 @@ const addPackage = answers => {
         `zcui-wc-${answers.packagename}/package.json`,
         `zcui-wc-${answers.packagename}/README.md`,
         `zcui-wc-${answers.packagename}/rollup.config.js`,
+        `zcui-wc-${answers.packagename}/src/*`,
       ],
       from: /sample-component/g,
       to: answers.packagename,
     });
+
+    const packagenameCapital = answers.packagename.charAt(0).toUpperCase() + answers.packagename.slice(1);
+    const changesCamelCase = replace.sync({
+      files: [
+        `zcui-wc-${answers.packagename}/src/zcui-wc-sample-component.js`,
+      ],
+      from: /SampleComponent/g,
+      to: packagenameCapital.replace(/_(\w)/g, (m => m[1].toUpperCase())),
+    });
+
+    const filesToRename = [
+      `zcui-wc-${answers.packagename}/src/zcui-wc-sample-component.js`,
+      `zcui-wc-${answers.packagename}/src/zcui-wc-sample-component.ejs`,
+      `zcui-wc-${answers.packagename}/src/zcui-wc-sample-component.scss`,
+    ];
+
+    filesToRename.forEach(file => {
+      fs.rename(file, `zcui-wc-${answers.packagename}/src/zcui-wc-${answers.packagename}.${file.split('.')[1]}`, function (err) {
+        if (err) throw err;
+      });
+    })
+
     console.log('Package created!');
   });
 }
